@@ -4,17 +4,15 @@ from typing import List
 
 from singer_sdk import Tap, Stream
 from singer_sdk import typing as th  # JSON schema typing helpers
-# TODO: Import your custom stream types here:
 from tap_montapacking.streams import (
     MontapackingStream,
-    UsersStream,
-    GroupsStream,
+    ProductsStream,
+    InboundsStream
 )
-# TODO: Compile a list of custom stream types here
-#       OR rewrite discover_streams() below with your custom logic.
+
 STREAM_TYPES = [
-    UsersStream,
-    GroupsStream,
+    ProductsStream,
+    InboundsStream
 ]
 
 
@@ -24,30 +22,8 @@ class TapMontapacking(Tap):
 
     # TODO: Update this section with the actual config values you expect:
     config_jsonschema = th.PropertiesList(
-        th.Property(
-            "auth_token",
-            th.StringType,
-            required=True,
-            secret=True,  # Flag config as protected.
-            description="The token to authenticate against the API service"
-        ),
-        th.Property(
-            "project_ids",
-            th.ArrayType(th.StringType),
-            required=True,
-            description="Project IDs to replicate"
-        ),
-        th.Property(
-            "start_date",
-            th.DateTimeType,
-            description="The earliest record date to sync"
-        ),
-        th.Property(
-            "api_url",
-            th.StringType,
-            default="https://api.mysample.com",
-            description="The url for the API service"
-        ),
+        th.Property("username", th.StringType, required=True, secret=True),
+        th.Property("password", th.StringType, required=True, secret=True),
     ).to_dict()
 
     def discover_streams(self) -> List[Stream]:
