@@ -195,8 +195,9 @@ class InboundsForecastParentStream(MontapackingStream):
         if next_page_token:
             params["page"] = next_page_token
 
-        rep_key = self.get_starting_time(context).strftime("%Y-%m-%dT%H:%M:%S")
+        rep_key = self.get_starting_time(context)
         if rep_key:
+            rep_key = rep_key.strftime("%Y-%m-%dT%H:%M:%S")
             params["created_since"] = rep_key
         else:
             # Thei api requires a created_since date for this endpoit.
