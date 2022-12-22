@@ -179,13 +179,6 @@ class InboundsForecastParentStream(MontapackingStream):
         th.Property("Created", th.DateTimeType),
     ).to_dict()
 
-    def get_starting_time(self, context):
-        start_date = self.config.get("start_date")
-        if start_date:
-            start_date = parse(self.config.get("start_date"))
-        rep_key = self.get_starting_timestamp(context)
-        return rep_key or start_date
-
     def get_url_params(
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
@@ -195,13 +188,8 @@ class InboundsForecastParentStream(MontapackingStream):
         if next_page_token:
             params["page"] = next_page_token
 
-        rep_key = self.get_starting_time(context)
-        if rep_key:
-            rep_key = rep_key.strftime("%Y-%m-%dT%H:%M:%S")
-            params["created_since"] = rep_key
-        else:
-            # Thei api requires a created_since date for this endpoit.
-            params["created_since"] = "2000-01-01T00:00:00"
+        # Thei api requires a created_since date for this endpoit.
+        params["created_since"] = "2000-01-01T00:00:00"
         return params
 
     def validate_response(self, response: requests.Response) -> None:
