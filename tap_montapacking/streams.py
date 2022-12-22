@@ -170,7 +170,7 @@ class InboundsForecastParentStream(MontapackingStream):
     name = "inboundforecast_parent"
     path = "/inboundforecast/group"
     primary_keys = ["PoNumber"]
-    replication_key = "Created"
+    replication_key = None
     paginate = True
     records_jsonpath = "$.[*]"
 
