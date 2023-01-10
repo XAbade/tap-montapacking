@@ -57,4 +57,20 @@ class MontapackingStream(RESTStream):
         params: dict = {}
         if next_page_token:
             params["page"] = next_page_token
-        return params
+        return params   
+
+    # Useful for debugging this API
+    # def parse_response(self, response: requests.Response) -> Iterable[dict]:
+    #     """Parse the response and return an iterator of result records.
+
+    #     Args:
+    #         response: A raw `requests.Response`_ object.
+
+    #     Yields:
+    #         One item for every item found in the response.
+
+    #     .. _requests.Response:
+    #         https://requests.readthedocs.io/en/latest/api/#requests.Response
+    #     """
+    #     yield from extract_jsonpath(self.records_jsonpath, input=response.json())
+    # USE A BREAKPOINT IN THE yield STATEMENT 

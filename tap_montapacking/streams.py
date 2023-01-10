@@ -189,7 +189,7 @@ class InboundsForecastParentStream(MontapackingStream):
             params["page"] = next_page_token
 
         # Thei api requires a created_since date for this endpoit.
-        params["created_since"] = "2000-01-01T00:00:00"
+        params["created_since"] = parse(self.config.get('start_date')).strftime("%Y-%m-%dT%H:%M:%S")
         return params
 
     def validate_response(self, response: requests.Response) -> None:
@@ -268,6 +268,16 @@ class InboundsForecastStream(MontapackingStream):
         th.Property("SupplierCode", th.StringType),
         th.Property("Comment", th.StringType),
     ).to_dict()
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params: dict = {}
+        params['created_since'] = "2000-01-01T00:00:00+00:00"
+        if next_page_token:
+            params["page"] = next_page_token
+        return params
 
     def validate_response(self, response: requests.Response) -> None:
 
