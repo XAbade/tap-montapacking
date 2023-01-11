@@ -6,6 +6,7 @@ import requests
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
+from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 
 
 class MontapackingStream(RESTStream):
@@ -75,3 +76,15 @@ class MontapackingStream(RESTStream):
     #     """
     #     yield from extract_jsonpath(self.records_jsonpath, input=response.json())
     # USE A BREAKPOINT IN THE yield STATEMENT 
+
+    def validate_response(self, response: requests.Response) -> None:
+
+        if (
+            response.status_code in self.extra_retry_statuses
+            or 500 <= response.status_code < 600
+        ):
+            msg = self.response_error_message(response)
+            raise RetriableAPIError(msg, response)
+        elif 400 <= response.status_code < 500 and response.status_code != 404:
+            msg = self.response_error_message(response)
+            raise FatalAPIError(msg)
