@@ -128,7 +128,7 @@ class InboundsStream(MontapackingStream):
                 th.Property("Title", th.StringType),
             ),
         ),
-        th.Property("Batch", th.CustomType({"type": ["array", "string"]})),
+        # th.Property("Batch", th.CustomType({"type": ["array", "string"]})),
     ).to_dict()
 
     def get_url_params(
