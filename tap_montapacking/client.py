@@ -13,6 +13,7 @@ class MontapackingStream(RESTStream):
 
     url_base = "https://api.montapacking.nl/rest/v5"
     paginate = True
+    extra_retry_statuses = [429,401]
 
     @property
     def authenticator(self) -> BasicAuthenticator:
