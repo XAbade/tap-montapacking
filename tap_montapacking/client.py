@@ -85,6 +85,8 @@ class MontapackingStream(RESTStream):
         ):
             msg = self.response_error_message(response)
             raise RetriableAPIError(msg, response)
-        elif 400 <= response.status_code < 500 and response.status_code != 404:
+        elif 400 <= response.status_code < 500:
+            if response.status_code == 404:
+                return None
             msg = self.response_error_message(response)
             raise FatalAPIError(msg)

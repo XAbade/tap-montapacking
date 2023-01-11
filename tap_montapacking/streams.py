@@ -203,7 +203,7 @@ class InboundsForecastParentStream(MontapackingStream):
         elif 400 <= response.status_code < 500:
             if (
                 response.status_code == 404
-                and "No groups found for these filters" in response.text
+                # and "No groups found for these filters" in response.text
             ):
                 return None
             msg = self.response_error_message(response)
@@ -290,7 +290,7 @@ class InboundsForecastStream(MontapackingStream):
         elif 400 <= response.status_code < 500:
             if (
                 response.status_code == 404
-                and "No groups found for these filters" in response.text
+                # and "No groups found for these filters" in response.text
             ):
                 return None
             msg = self.response_error_message(response)
