@@ -138,10 +138,19 @@ class InboundsStream(MontapackingStream):
         params: dict = {}
 
         rep_key = self.get_starting_replication_key_value(context)
-        if rep_key and next_page_token is None:
-            params["sinceid"] = rep_key
+
+        if isinstance(rep_key,int):
+            rep_key = str(rep_key)
+        else:
+            rep_key = None
+        
+        if rep_key is not None:
+            params['sinceid'] = rep_key
         elif next_page_token is not None:
             params["sinceid"] = next_page_token
+        else: 
+            params["sinceid"] = self.config.get('since_id')
+
         return params
 
     def get_next_page_token(
@@ -191,23 +200,6 @@ class InboundsForecastParentStream(MontapackingStream):
         # Thei api requires a created_since date for this endpoit.
         params["created_since"] = parse(self.config.get('start_date')).strftime("%Y-%m-%dT%H:%M:%S")
         return params
-
-    def validate_response(self, response: requests.Response) -> None:
-
-        if (
-            response.status_code in self.extra_retry_statuses
-            or 500 <= response.status_code < 600
-        ):
-            msg = self.response_error_message(response)
-            raise RetriableAPIError(msg, response)
-        elif 400 <= response.status_code < 500:
-            if (
-                response.status_code == 404
-                # and "No groups found for these filters" in response.text
-            ):
-                return None
-            msg = self.response_error_message(response)
-            raise FatalAPIError(msg)
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         if "No groups found for these filters" in record.get("Message", ""):
@@ -278,23 +270,6 @@ class InboundsForecastStream(MontapackingStream):
         if next_page_token:
             params["page"] = next_page_token
         return params
-
-    def validate_response(self, response: requests.Response) -> None:
-
-        if (
-            response.status_code in self.extra_retry_statuses
-            or 500 <= response.status_code < 600
-        ):
-            msg = self.response_error_message(response)
-            raise RetriableAPIError(msg, response)
-        elif 400 <= response.status_code < 500:
-            if (
-                response.status_code == 404
-                # and "No groups found for these filters" in response.text
-            ):
-                return None
-            msg = self.response_error_message(response)
-            raise FatalAPIError(msg)
 
 
 class SupplierStream(MontapackingStream):

@@ -7,7 +7,8 @@ from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
-
+import logging
+from requests.exceptions import JSONDecodeError as RequestsJSONDecodeError
 
 class MontapackingStream(RESTStream):
     """Montapacking stream class."""
@@ -78,7 +79,7 @@ class MontapackingStream(RESTStream):
     # USE A BREAKPOINT IN THE yield STATEMENT 
 
     def validate_response(self, response: requests.Response) -> None:
-
+        logging.info(f"DEBUG RESPONSE: {response.text}")
         if (
             response.status_code in self.extra_retry_statuses
             or 500 <= response.status_code < 600
@@ -90,3 +91,12 @@ class MontapackingStream(RESTStream):
                 return None
             msg = self.response_error_message(response)
             raise FatalAPIError(msg)
+
+    def parse_response(self, response: requests.Response) -> Iterable[dict]:
+
+        try:
+            input = response.json()
+        except RequestsJSONDecodeError:
+            return []
+
+        yield from extract_jsonpath(self.records_jsonpath, input=input)
