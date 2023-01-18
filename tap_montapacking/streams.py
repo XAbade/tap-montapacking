@@ -145,9 +145,10 @@ class InboundsStream(MontapackingStream):
             rep_key = None
         
         if rep_key is not None:
-            params['sinceid'] = rep_key
-        elif next_page_token is not None:
-            params["sinceid"] = next_page_token
+            if next_page_token is not None:
+                params["sinceid"] = next_page_token
+            else:
+                params['sinceid'] = rep_key
         else: 
             params["sinceid"] = self.config.get('since_id')
 
