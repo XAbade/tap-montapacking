@@ -137,20 +137,18 @@ class InboundsStream(MontapackingStream):
         """Return a dictionary of values to be used in URL parameterization."""
         params: dict = {}
 
-        rep_key = self.get_starting_replication_key_value(context)
-
-        if isinstance(rep_key,int):
-            rep_key = str(rep_key)
+        if next_page_token is not None:
+            # For the pagination we need to set the next page token like this.
+            params["sinceid"] = next_page_token
         else:
-            rep_key = None
-        
-        if rep_key is not None:
-            if next_page_token is not None:
-                params["sinceid"] = next_page_token
+            # For the replication key logic we need the state
+            state = self.get_context_state(context) 
+            if "replication_key_value" in state:
+                params['sinceid'] = state["replication_key_value"]
             else:
-                params['sinceid'] = rep_key
-        else: 
-            params["sinceid"] = self.config.get('since_id')
+                # if no replication key in state
+                # use the since_id from config if not available in state
+                params['sinceid'] = self.config.get("since_id")
 
         return params
 
