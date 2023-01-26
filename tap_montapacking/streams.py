@@ -11,10 +11,10 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 from tap_montapacking.client import MontapackingStream
 
 # STREAMS TODO
-# PRODUCTS [ ]
+# PRODUCTS [x]
 # INBOUND FORECASTS / BUY ORDERS [X]
-# SUPPLIERS [ ]
-# ORDERS [ ] # missing creating new orders to test # No need to worry now, we're stil on phase 1
+# SUPPLIERS [x]
+# ORDERS [ ] 
 # INBOUNDS [X] 
 
 
@@ -32,9 +32,9 @@ class ProductsStream(MontapackingStream):
         th.Property("Description", th.StringType),
         th.Property("Barcodes", th.CustomType({"type": ["array", "string"]})),
         th.Property("WeightGrammes", th.IntegerType),
-        th.Property("LengthMm", th.StringType),
-        th.Property("WidthMm", th.StringType),
-        th.Property("HeightMm", th.StringType),
+        th.Property("LengthMm", th.IntegerType),
+        th.Property("WidthMm", th.IntegerType),
+        th.Property("HeightMm", th.IntegerType),
         th.Property(
             "Stock",
             th.ObjectType(
@@ -52,12 +52,12 @@ class ProductsStream(MontapackingStream):
             ),
         ),
         th.Property("SupplierCode", th.StringType),
-        th.Property("PurchasePrice", th.StringType),
-        th.Property("SellingPrice", th.StringType),
-        th.Property("PurchasePriceHidden", th.StringType),
+        th.Property("PurchasePrice", th.NumberType),
+        th.Property("SellingPrice", th.NumberType),
+        th.Property("PurchasePriceHidden", th.BooleanType),
         th.Property("Food", th.BooleanType),
-        th.Property("MinimumExpiryPeriodInbound", th.StringType),
-        th.Property("MinimumExpiryPeriodOutbound", th.StringType),
+        th.Property("MinimumExpiryPeriodInbound", th.CustomType({"type": ["string"]})),
+        th.Property("MinimumExpiryPeriodOutbound", th.CustomType({"type": ["string"]})),
         th.Property("Cool", th.BooleanType),
         th.Property("Note", th.StringType),
         th.Property("HStariefCode", th.StringType),
@@ -65,6 +65,8 @@ class ProductsStream(MontapackingStream):
         th.Property("PurchaseStepQty", th.IntegerType),
         th.Property("RegisterSerialNumber", th.BooleanType),
         th.Property("RegisterSerialNumberB2B", th.BooleanType),
+        th.Property("IsFragile", th.BooleanType),
+        th.Property("IsDangerous", th.BooleanType),
     ).to_dict()
 
 
@@ -287,6 +289,7 @@ class SupplierStream(MontapackingStream):
     primary_keys = ["Code"]
     replication_key = None
     records_jsonpath = "$.[*]"
+    paginate = False
 
     schema = th.PropertiesList(
         th.Property("Code", th.StringType),
