@@ -29,6 +29,7 @@ class ProductsStream(MontapackingStream):
 
     schema = th.PropertiesList(
         th.Property("name", th.StringType),
+        th.Property("Sku", th.StringType),
         th.Property("Description", th.StringType),
         th.Property("Barcodes", th.CustomType({"type": ["array", "string"]})),
         th.Property("WeightGrammes", th.IntegerType),
