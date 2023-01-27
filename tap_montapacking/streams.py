@@ -11,10 +11,10 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 from tap_montapacking.client import MontapackingStream
 
 # STREAMS TODO
-# PRODUCTS [ ]
+# PRODUCTS [x]
 # INBOUND FORECASTS / BUY ORDERS [X]
-# SUPPLIERS [ ]
-# ORDERS [ ] # missing creating new orders to test # No need to worry now, we're stil on phase 1
+# SUPPLIERS [x]
+# ORDERS [ ] 
 # INBOUNDS [X] 
 
 
@@ -32,9 +32,9 @@ class ProductsStream(MontapackingStream):
         th.Property("Description", th.StringType),
         th.Property("Barcodes", th.CustomType({"type": ["array", "string"]})),
         th.Property("WeightGrammes", th.IntegerType),
-        th.Property("LengthMm", th.StringType),
-        th.Property("WidthMm", th.StringType),
-        th.Property("HeightMm", th.StringType),
+        th.Property("LengthMm", th.IntegerType),
+        th.Property("WidthMm", th.IntegerType),
+        th.Property("HeightMm", th.IntegerType),
         th.Property(
             "Stock",
             th.ObjectType(
@@ -52,12 +52,12 @@ class ProductsStream(MontapackingStream):
             ),
         ),
         th.Property("SupplierCode", th.StringType),
-        th.Property("PurchasePrice", th.StringType),
-        th.Property("SellingPrice", th.StringType),
-        th.Property("PurchasePriceHidden", th.StringType),
+        th.Property("PurchasePrice", th.NumberType),
+        th.Property("SellingPrice", th.NumberType),
+        th.Property("PurchasePriceHidden", th.BooleanType),
         th.Property("Food", th.BooleanType),
-        th.Property("MinimumExpiryPeriodInbound", th.StringType),
-        th.Property("MinimumExpiryPeriodOutbound", th.StringType),
+        th.Property("MinimumExpiryPeriodInbound", th.CustomType({"type": ["string"]})),
+        th.Property("MinimumExpiryPeriodOutbound", th.CustomType({"type": ["string"]})),
         th.Property("Cool", th.BooleanType),
         th.Property("Note", th.StringType),
         th.Property("HStariefCode", th.StringType),
@@ -65,6 +65,8 @@ class ProductsStream(MontapackingStream):
         th.Property("PurchaseStepQty", th.IntegerType),
         th.Property("RegisterSerialNumber", th.BooleanType),
         th.Property("RegisterSerialNumberB2B", th.BooleanType),
+        th.Property("IsFragile", th.BooleanType),
+        th.Property("IsDangerous", th.BooleanType),
     ).to_dict()
 
 
@@ -287,6 +289,7 @@ class SupplierStream(MontapackingStream):
     primary_keys = ["Code"]
     replication_key = None
     records_jsonpath = "$.[*]"
+    paginate = False
 
     schema = th.PropertiesList(
         th.Property("Code", th.StringType),
@@ -313,14 +316,122 @@ class SupplierStream(MontapackingStream):
     # TODO figure out how pagination for this endpoint works
 
 
-# class OrdersStream(MontapackingStream):
+class OrdersStream(MontapackingStream):
 
-#     name = "orders"
-#     path = "/order"
-#     primary_keys = ["Id"]
-#     replication_key = None
-#     records_jsonpath = None
+    name = "orders"
+    path = "/order"
+    replication_key = "Received"
+    primary_keys = ["Id"]
+    records_jsonpath = "$.[*]"
 
-#     schema = th.PropertiesList(
+    schema = th.PropertiesList(
+        th.Property("InternalWebshopOrderId",th.StringType),
+        th.Property("WebshopOrderId",th.StringType),
+        th.Property("Reference",th.CustomType({"type": ["string"]})),
+        th.Property("Origin",th.StringType),
+        th.Property("ConsumerDetails",
+            th.ObjectType(
+                th.Property("DeliveryAddress",th.ObjectType(
+                    th.Property("Company",th.StringType),
+                    th.Property("FirstName",th.StringType),
+                    th.Property("MiddleName",th.StringType),
+                    th.Property("LastName",th.StringType),
+                    th.Property("Street",th.StringType),
+                    th.Property("HouseNumber",th.StringType),
+                    th.Property("HouseNumberAddition",th.StringType),
+                    th.Property("PostalCode",th.StringType),
+                    th.Property("City",th.StringType),
+                    th.Property("State",th.StringType),
+                    th.Property("CountryCode",th.StringType),
+                    th.Property("PhoneNumber",th.StringType),
+                    th.Property("EmailAddress",th.StringType),
+                    ),
+                ),
+                th.Property("InvoiceAddress", th.ObjectType(
+                    th.Property("Company",th.StringType),
+                    th.Property("FirstName",th.StringType),
+                    th.Property("MiddleName",th.StringType),
+                    th.Property("LastName",th.StringType),
+                    th.Property("Street",th.StringType),
+                    th.Property("HouseNumber",th.StringType),
+                    th.Property("HouseNumberAddition",th.StringType),
+                    th.Property("PostalCode",th.StringType),
+                    th.Property("City",th.StringType),
+                    th.Property("State",th.StringType),
+                    th.Property("CountryCode",th.StringType),
+                    th.Property("PhoneNumber",th.StringType),
+                    th.Property("EmailAddress",th.StringType),
+                    )
+                ),
+                th.Property("InvoiceDebtorNumber",th.StringType),
+                th.Property("B2B",th.BooleanType),
+                th.Property("ShippingComment",th.StringType),
+                th.Property("CommunicationLanguageCode",th.StringType),
+            )),
+            th.Property("PlannedShipmentDate",th.DateTimeType),
+            th.Property("ShipOnPlannedShipmentDate",th.BooleanType),
+            th.Property("Blocked",th.BooleanType),
+            th.Property("BlockedMessage",th.CustomType({"type": ["string"]})),
+            th.Property("Quarantine",th.BooleanType),
+            th.Property("ShipperCode",th.StringType),
+            th.Property("MailboxShipperMandatory",th.BooleanType),
+            th.Property("ShipperTrackingMandatory",th.BooleanType),
+            th.Property("ShipperInsuranceRequired",th.BooleanType),
+            th.Property("ShipperInsuranceValue",th.CustomType({"type": ["string"]})),
+            th.Property("ShipperInsuranceCurrency",th.CustomType({"type": ["string"]})),
+            th.Property("DeliveryDateRequested",th.DateTimeType),
+            th.Property("Lines",th.ArrayType(
+                th.ObjectType(
+                    th.Property("Sku",th.StringType),
+                    th.Property("OrderedQuantity",th.IntegerType),
+                    th.Property("WebshopOrderLineId",th.CustomType({"type": ["string"]})),
+                    th.Property("Occured",th.DateTimeType),
+                    th.Property("IsFlyer",th.BooleanType),
+                    th.Property("Backorder",th.BooleanType),
+                    th.Property("HasBeenBackorder",th.BooleanType),
+                    th.Property("Description",th.StringType),
+                    th.Property("ShippingLabels",th.CustomType({"type": ["string"]})),
+                )
+            )),
+            th.Property("AllowedShippers",th.CustomType({"type": ["array","string"]})),
+            th.Property("PackingServices",th.CustomType({"type": ["array","string"]})),
+            th.Property("ShipperOptions",th.CustomType({"type": ["array","string"]})),
+            th.Property("Received",th.DateTimeType),
+            th.Property("Verified",th.DateTimeType),
+            th.Property("Backorder",th.BooleanType),
+            th.Property("Picking",th.BooleanType),
+            th.Property("Picked",th.DateTimeType),
+            th.Property("Shipped",th.DateTimeType),
+            th.Property("TrackAndTraceLink",th.StringType),
+            th.Property("TrackAndTraceCode",th.StringType),
+            th.Property("ShipperDescription",th.StringType),
+            th.Property("ActionCode",th.CustomType({"type": ["array","string"]})),
+            th.Property("Comment",th.CustomType({"type": ["array","string"]})),
+            th.Property("HasStockReservation",th.BooleanType),
+            th.Property("Deleted",th.BooleanType),
+            th.Property("DeliveryStatusDescription",th.StringType),
+            th.Property("DeliveryStatusCode",th.StringType),
+            th.Property("DropShip",th.BooleanType),
+            th.Property("MontaEorderId",th.IntegerType),
+            th.Property("Invoice",th.CustomType({"type": ["array","string"]})),
+            th.Property("Family",th.CustomType({"type": ["array","string"]})),
+            th.Property("MontaEorderGuid",th.StringType),
+            th.Property("IsRunner",th.BooleanType),
+            th.Property("EstimatedDeliveryFrom",th.DateTimeType),
+            th.Property("EstimatedDeliveryTo",th.DateTimeType),
+            th.Property("PickbonIds",th.CustomType({"type": ["array","string"]})),
+            th.Property("Prepack",th.BooleanType),
+            th.Property("PrepackShip",th.BooleanType),
+            th.Property("DeliveryDate",th.DateTimeType),
+    ).to_dict()
 
-#     ).to_dict()
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params: dict = {}
+
+        params['created_since'] = parse(self.config.get('start_date')).strftime("%Y-%m-%dT%H:%M:%S")
+        if next_page_token:
+            params["page"] = next_page_token
+        return params   

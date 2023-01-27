@@ -1,6 +1,7 @@
 """REST client handling, including MontapackingStream base class."""
 
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union,Generator
+import backoff
 
 import requests
 from singer_sdk.authenticators import BasicAuthenticator
@@ -100,3 +101,7 @@ class MontapackingStream(RESTStream):
             return []
 
         yield from extract_jsonpath(self.records_jsonpath, input=input)
+    
+    def backoff_wait_generator(self) -> Generator[float, None, None]:
+
+        return backoff.expo(base=2,factor=3) 
