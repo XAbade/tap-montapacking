@@ -10,7 +10,8 @@ from tap_montapacking.streams import (
     InboundsForecastStream,
     InboundsStream,
     ProductsStream,
-    SupplierStream
+    SupplierStream,
+    OrdersStream
 )
 
 STREAM_TYPES = [
@@ -19,6 +20,7 @@ STREAM_TYPES = [
     InboundsStream,
     InboundsForecastParentStream,
     InboundsForecastStream,
+    OrdersStream
 ]
 
 
