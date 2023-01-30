@@ -80,7 +80,6 @@ class MontapackingStream(RESTStream):
     # USE A BREAKPOINT IN THE yield STATEMENT 
 
     def validate_response(self, response: requests.Response) -> None:
-        logging.info(f"DEBUG RESPONSE: {response.text}")
         if (
             response.status_code in self.extra_retry_statuses
             or 500 <= response.status_code < 600
@@ -105,3 +104,6 @@ class MontapackingStream(RESTStream):
     def backoff_wait_generator(self) -> Generator[float, None, None]:
 
         return backoff.expo(base=2,factor=3) 
+    
+    def backoff_max_tries(self) -> int:
+        return 7
