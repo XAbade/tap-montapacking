@@ -432,7 +432,9 @@ class OrdersStream(MontapackingStream):
         """Return a dictionary of values to be used in URL parameterization."""
         params: dict = {}
 
-        params['created_since'] = parse(self.config.get('start_date')).strftime("%Y-%m-%dT%H:%M:%S")
+        params['created_since'] = self.get_starting_time(context)
+       
         if next_page_token:
             params["page"] = next_page_token
+           
         return params   
