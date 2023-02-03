@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, Iterable, List, Optional, Union,Generator
 import backoff
-
+from memoization import cached
+from pendulum import parse
 import requests
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
@@ -107,3 +108,9 @@ class MontapackingStream(RESTStream):
     
     def backoff_max_tries(self) -> int:
         return 7
+
+    @cached
+    def get_starting_time(self, context):
+        start_date = parse(self.config.get("start_date"))
+        rep_key = self.get_starting_timestamp(context)
+        return rep_key or start_date
