@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union,Generator
 import backoff
 from memoization import cached
 from pendulum import parse
+from datetime import timedelta
 import requests
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
@@ -114,3 +115,13 @@ class MontapackingStream(RESTStream):
         start_date = parse(self.config.get("start_date"))
         rep_key = self.get_starting_timestamp(context)
         return rep_key or start_date
+    
+
+    def post_process(self, row: dict, context: dict) -> dict :
+    
+        ## Substract 1 hour from the replication key
+        if self.replication_key:
+            time_utc = parse(row[self.replication_key]) - timedelta(hours=1)
+            row[self.replication_key] = time_utc.strftime("%Y-%m-%dT%H:%M:%S.%f")
+        return row
+        

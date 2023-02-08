@@ -322,13 +322,12 @@ class OrdersStream(MontapackingStream):
     name = "orders"
     path = "/order"
     replication_key = "Received"
-    primary_keys = ["Id"]
     records_jsonpath = "$.[*]"
 
     schema = th.PropertiesList(
         th.Property("InternalWebshopOrderId",th.StringType),
         th.Property("WebshopOrderId",th.StringType),
-        th.Property("Reference",th.CustomType({"type": ["string"]})),
+        th.Property("Reference",th.StringType),
         th.Property("Origin",th.StringType),
         th.Property("ConsumerDetails",
             th.ObjectType(
