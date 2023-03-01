@@ -4,7 +4,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union,Generator
 import backoff
 from memoization import cached
 from pendulum import parse
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
+import pandas as pd
 import requests
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
@@ -97,7 +98,7 @@ class MontapackingStream(RESTStream):
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
 
         try:
-            input = response.json()
+            input = response.json()         
         except RequestsJSONDecodeError:
             return []
 
@@ -111,10 +112,17 @@ class MontapackingStream(RESTStream):
         return 7
 
     @cached
-    def get_starting_time(self, context):
+    def get_starting_time(self, context):     
+        
         start_date = parse(self.config.get("start_date"))
         rep_key = self.get_starting_timestamp(context)
-        return rep_key or start_date
+        if self.name == "orders":
+            actual_start_date = datetime(2023,1,1,0,0,0, tzinfo=timezone.utc)
+            if rep_key < actual_start_date:
+                rep_key = actual_start_date
+            return rep_key or actual_start_date
+        else:
+            return rep_key or start_date
     
 
     def post_process(self, row: dict, context: dict) -> dict :
