@@ -114,7 +114,16 @@ class MontapackingStream(RESTStream):
     def get_starting_time(self, context):
         start_date = parse(self.config.get("start_date"))
         rep_key = self.get_starting_timestamp(context)
-        return rep_key or start_date
+        if self.name == "orders" :
+            state = self.get_context_state(context)
+            # When the replication key is not set, we are in the first sync
+            if state.get('replication_key') is None:
+                return None
+            # When the replication key is set, we are in the second sync with a state
+            else:
+                return rep_key
+        else:
+            return rep_key or start_date
     
 
     def post_process(self, row: dict, context: dict) -> dict :
