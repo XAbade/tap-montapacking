@@ -144,7 +144,7 @@ class InboundsStream(MontapackingStream):
             # For the pagination we need to set the next page token like this.
             params["sinceid"] = next_page_token
         else:
-            config_since_id = int(self.config.get("since_id"))
+            config_since_id = int(self.config.get("since_id") or "0")
             # For the replication key logic we need the state
             state = self.get_context_state(context) 
             if "replication_key_value" in state:
