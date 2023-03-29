@@ -206,7 +206,11 @@ class InboundsForecastParentStream(MontapackingStream):
             params["page"] = next_page_token
 
         # Thei api requires a created_since date for this endpoit.
-        params["created_since"] = parse(self.config.get('start_date')).strftime("%Y-%m-%dT%H:%M:%S")
+        if self.config.get('start_date') is None:
+            start_date = "2000-01-01T00:00:00.000Z"
+        else:
+            start_date = self.config.get('start_date')
+        params["created_since"] = parse(start_date).strftime("%Y-%m-%dT%H:%M:%S")
         return params
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
