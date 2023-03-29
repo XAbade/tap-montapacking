@@ -133,4 +133,22 @@ class MontapackingStream(RESTStream):
             time_utc = parse(row[self.replication_key]) - timedelta(hours=1)
             row[self.replication_key] = time_utc.strftime("%Y-%m-%dT%H:%M:%S.%f")
         return row
+    
+    def _request(
+        self, prepared_request: requests.PreparedRequest, context: dict 
+    ) -> requests.Response:
+        
+        response = self.requests_session.send(prepared_request, timeout=self.timeout, verify=False)
+        self._write_request_duration_log(
+            endpoint=self.path,
+            response=response,
+            context=context,
+            extra_tags={"url": prepared_request.path_url}
+            if self._LOG_REQUEST_METRIC_URLS
+            else None,
+        )
+        self.validate_response(response)
+        logging.debug("Response received successfully.")
+        return response
+
         
