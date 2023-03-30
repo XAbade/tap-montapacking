@@ -112,7 +112,11 @@ class MontapackingStream(RESTStream):
 
     @cached
     def get_starting_time(self, context):
-        start_date = parse(self.config.get("start_date"))
+        if self.config.get('start_date') is None:
+            start_date = "2000-01-01T00:00:00.000Z"
+        else:
+            start_date = self.config.get('start_date')
+        start_date = parse(start_date)
         rep_key = self.get_starting_timestamp(context)
         if self.name == "orders" :
             state = self.get_context_state(context)
