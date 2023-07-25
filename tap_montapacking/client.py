@@ -113,7 +113,7 @@ class MontapackingStream(RESTStream):
     @cached
     def get_starting_time(self, context):
         if self.config.get('start_date') is None:
-            start_date = "2000-01-01T00:00:00.000Z"
+            start_date = "2015-01-01T00:00:00.000Z"
         else:
             start_date = self.config.get('start_date')
         start_date = parse(start_date)
