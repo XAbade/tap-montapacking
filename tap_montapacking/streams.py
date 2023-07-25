@@ -7,7 +7,8 @@ from pendulum import parse
 from singer_sdk import typing as th  # JSON Schema typing helpers
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.helpers.jsonpath import extract_jsonpath
-
+import datetime
+from dateutil.relativedelta import relativedelta
 from tap_montapacking.client import MontapackingStream
 
 # STREAMS TODO
@@ -327,6 +328,8 @@ class OrdersStream(MontapackingStream):
     path = "/order"
     replication_key = "Received"
     records_jsonpath = "$.[*]"
+    created_since = None
+    paginate_years = True
 
     schema = th.PropertiesList(
         th.Property("InternalWebshopOrderId",th.StringType),
@@ -434,10 +437,31 @@ class OrdersStream(MontapackingStream):
     ) -> Dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
         params: dict = {}
-
-        params['created_since'] = self.get_starting_time(context)
-       
-        if next_page_token:
+        if not self.created_since:
+            self.created_since = self.get_starting_time(context)
+        params['created_since'] = self.created_since   
+        if next_page_token and not self.paginate_years:
             params["page"] = next_page_token
-           
         return params   
+    
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        year = None
+        current_year = datetime.datetime.now().year
+        if self.created_since:
+            year = self.created_since.year
+        if self.paginate_years:
+            if year < current_year and not response.json():
+                self.created_since = self.created_since + relativedelta(years=1)
+                previous_token = previous_token or year
+                return previous_token + 1
+            else:
+                self.paginate_years = False
+                return 1
+        else:
+            if '{"Message":"No groups found for these filters"}' in response.text:
+                return None
+            if response.json():
+                return previous_token + 1
+            return None
