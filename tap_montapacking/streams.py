@@ -420,7 +420,7 @@ class OrdersStream(MontapackingStream):
             th.Property("DeliveryStatusCode",th.StringType),
             th.Property("DropShip",th.BooleanType),
             th.Property("MontaEorderId",th.IntegerType),
-            th.Property("Invoice",th.CustomType({"type": ["array","string"]})),
+            th.Property("Invoice",th.CustomType({"type": ["array", "string", "object"]})),
             th.Property("Family",th.CustomType({"type": ["array","string"]})),
             th.Property("MontaEorderGuid",th.StringType),
             th.Property("IsRunner",th.BooleanType),
