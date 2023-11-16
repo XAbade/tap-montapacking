@@ -219,6 +219,9 @@ class InboundsForecastParentStream(MontapackingStream):
             return None
         if self.last_child == record["PoNumber"]:
             return None
+        if "/" in record["PoNumber"] or "\\" in record["PoNumber"]:
+            return None
+        record["PoNumber"] = record["PoNumber"].strip().replace("\t", "")
         self.last_child = record["PoNumber"]
         return {"id": record["PoNumber"]}
 
