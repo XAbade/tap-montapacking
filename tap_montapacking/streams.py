@@ -217,7 +217,7 @@ class InboundsForecastParentStream(MontapackingStream):
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         if "No groups found for these filters" in record.get("Message", ""):
             return None
-        if self.last_child == record["PoNumber"] or not record["PoNumber"].isnumeric():
+        if self.last_child == record["PoNumber"]:
             return None
         self.last_child = record["PoNumber"]
         return {"id": record["PoNumber"]}
