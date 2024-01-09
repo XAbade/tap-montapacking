@@ -7,7 +7,6 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 
 from tap_montapacking.streams import (
     InboundsForecastParentStream,
-    InboundsForecastStream,
     InboundsStream,
     ProductsStream,
     SupplierStream,
@@ -19,7 +18,6 @@ STREAM_TYPES = [
     SupplierStream, # Phase 2
     InboundsStream,
     InboundsForecastParentStream,
-    InboundsForecastStream,
     OrdersStream
 ]
 
