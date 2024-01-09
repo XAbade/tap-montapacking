@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import requests
 from pendulum import parse
+from requests.models import PreparedRequest as PreparedRequest, Response as Response
 from singer_sdk import typing as th  # JSON Schema typing helpers
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.helpers.jsonpath import extract_jsonpath
@@ -147,7 +148,7 @@ class InboundsStream(MontapackingStream):
         else:
             config_since_id = int(self.config.get("since_id") or "0")
             # For the replication key logic we need the state
-            state = self.get_context_state(context) 
+            state = self.get_context_state(context)
             if "replication_key_value" in state:
                 state_since_id = int(state["replication_key_value"])
                 if state_since_id > config_since_id:
@@ -194,7 +195,24 @@ class InboundsForecastParentStream(MontapackingStream):
 
     schema = th.PropertiesList(
         th.Property("PoNumber", th.StringType),
+        th.Property("Reference", th.StringType),
+        th.Property(
+            "InboundForecasts",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("DeliveryDate", th.DateTimeType),
+                    th.Property("Sku", th.StringType),
+                    th.Property("Quantity", th.IntegerType),
+                    th.Property("Approved", th.BooleanType),
+                    th.Property("QuantityReceived", th.IntegerType),
+                    th.Property("Reference", th.StringType),
+                    th.Property("Comment", th.StringType),
+                )
+            ),
+        ),
         th.Property("Created", th.DateTimeType),
+        th.Property("SupplierCode", th.StringType),
+        th.Property("Comment", th.StringType),
     ).to_dict()
 
     def get_url_params(
@@ -225,13 +243,6 @@ class InboundsForecastParentStream(MontapackingStream):
         self.last_child = record["PoNumber"]
         return {"id": record["PoNumber"]}
 
-    def safeget(dct, *keys):
-        for key in keys:
-            dct = dct.get(key)
-            if dct is None:
-                return None
-        return dct
-
     def _sync_children(self, child_context: dict) -> None:
         # Don't get previous records
         if child_context is None:
@@ -245,50 +256,6 @@ class InboundsForecastParentStream(MontapackingStream):
         if "No groups found for these filters" in response.text:
             return None
         yield from extract_jsonpath(self.records_jsonpath, input=response.json())
-
-
-class InboundsForecastStream(MontapackingStream):
-    """Define custom stream."""
-
-    name = "inboundforecast"
-    path = "/inboundforecast/group/{id}"
-    primary_keys = ["PoNumber"]
-    paginate = False
-    records_jsonpath = "$.[*]"
-    rest_method = "GET"
-    parent_stream_type = InboundsForecastParentStream
-
-    schema = th.PropertiesList(
-        th.Property("PoNumber", th.StringType),
-        th.Property("Reference", th.StringType),
-        th.Property(
-            "InboundForecasts",
-            th.ArrayType(
-                th.ObjectType(
-                    th.Property("DeliveryDate", th.DateTimeType),
-                    th.Property("Sku", th.StringType),
-                    th.Property("Quantity", th.IntegerType),
-                    th.Property("Approved", th.BooleanType),
-                    th.Property("QuantityReceived", th.IntegerType),
-                    th.Property("Reference", th.StringType),
-                    th.Property("Comment", th.StringType),
-                )
-            ),
-        ),
-        th.Property("Created", th.DateTimeType),
-        th.Property("SupplierCode", th.StringType),
-        th.Property("Comment", th.StringType),
-    ).to_dict()
-
-    def get_url_params(
-        self, context: Optional[dict], next_page_token: Optional[Any]
-    ) -> Dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization."""
-        params: dict = {}
-        params['created_since'] = "2000-01-01T00:00:00+00:00"
-        if next_page_token:
-            params["page"] = next_page_token
-        return params
 
 
 class SupplierStream(MontapackingStream):
@@ -442,11 +409,11 @@ class OrdersStream(MontapackingStream):
         params: dict = {}
         if not self.created_since:
             self.created_since = self.get_starting_time(context)
-        params['created_since'] = self.created_since   
+        params['created_since'] = self.created_since
         if next_page_token and not self.paginate_years:
             params["page"] = next_page_token
-        return params   
-    
+        return params
+
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]
     ) -> Optional[Any]:
