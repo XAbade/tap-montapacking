@@ -194,7 +194,25 @@ class InboundsForecastParentStream(MontapackingStream):
 
     schema = th.PropertiesList(
         th.Property("PoNumber", th.StringType),
+        th.Property("Reference", th.StringType),
+         th.Property(
+            "InboundForecasts",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("DeliveryDate", th.DateTimeType),
+                    th.Property("Sku", th.StringType),
+                    th.Property("Quantity", th.IntegerType),
+                    th.Property("Approved", th.BooleanType),
+                    th.Property("QuantityReceived", th.IntegerType),
+                    th.Property("Reference", th.StringType),
+                    th.Property("Comment", th.StringType),
+                    th.Property("InboundForecastId", th.NumberType),
+                )
+            ),
+        ),
         th.Property("Created", th.DateTimeType),
+        th.Property("SupplierCode", th.StringType),
+        th.Property("Comment", th.StringType),
     ).to_dict()
 
     def get_url_params(
@@ -272,6 +290,7 @@ class InboundsForecastStream(MontapackingStream):
                     th.Property("QuantityReceived", th.IntegerType),
                     th.Property("Reference", th.StringType),
                     th.Property("Comment", th.StringType),
+                    th.Property("InboundForecastId", th.NumberType),
                 )
             ),
         ),
