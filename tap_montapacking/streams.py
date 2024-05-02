@@ -69,6 +69,7 @@ class ProductsStream(MontapackingStream):
         th.Property("RegisterSerialNumberB2B", th.BooleanType),
         th.Property("IsFragile", th.BooleanType),
         th.Property("IsDangerous", th.BooleanType),
+        th.Property("SupplierProductCode", th.StringType),
     ).to_dict()
 
 
