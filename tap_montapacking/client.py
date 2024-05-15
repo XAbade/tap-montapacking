@@ -16,7 +16,7 @@ from requests.exceptions import JSONDecodeError as RequestsJSONDecodeError
 class MontapackingStream(RESTStream):
     """Montapacking stream class."""
 
-    url_base = "https://api.montapacking.nl/rest/v5"
+    url_base = "https://api-v6.monta.nl"
     paginate = True
     extra_retry_statuses = [429,401]
 
