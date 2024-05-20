@@ -481,7 +481,7 @@ class OrdersStream(MontapackingStream):
                 self.paginate_years = False
                 return 1
         else:
-            if '{"Message":"No groups found for these filters"}' in response.text:
+            if 'No groups found for these filters' in response.text:
                 return None
             if response.json():
                 return previous_token + 1
