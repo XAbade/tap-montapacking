@@ -405,7 +405,7 @@ class OrdersStream(MontapackingStream):
             th.Property("MailboxShipperMandatory",th.BooleanType),
             th.Property("ShipperTrackingMandatory",th.BooleanType),
             th.Property("ShipperInsuranceRequired",th.BooleanType),
-            th.Property("ShipperInsuranceValue",th.CustomType({"type": ["string"]})),
+            th.Property("ShipperInsuranceValue",th.CustomType({"type": ["string", "number"]})),
             th.Property("ShipperInsuranceCurrency",th.CustomType({"type": ["string"]})),
             th.Property("DeliveryDateRequested",th.DateTimeType),
             th.Property("Lines",th.ArrayType(
