@@ -70,6 +70,8 @@ class ProductsStream(MontapackingStream):
         th.Property("IsFragile", th.BooleanType),
         th.Property("IsDangerous", th.BooleanType),
         th.Property("SupplierProductCode", th.StringType),
+        th.Property("ProductId", th.IntegerType),
+        th.Property("MinimumStock", th.IntegerType),
     ).to_dict()
 
 
@@ -187,14 +189,13 @@ class InboundsForecastParentStream(MontapackingStream):
 
     name = "inboundforecast_parent"
     path = "/inboundforecast/group"
-    primary_keys = ["PoNumber"]
+    primary_keys = ["Reference"]
     replication_key = None
     paginate = True
     records_jsonpath = "$.[*]"
     last_child = None
 
     schema = th.PropertiesList(
-        th.Property("PoNumber", th.StringType),
         th.Property("Reference", th.StringType),
          th.Property(
             "InboundForecasts",
@@ -236,13 +237,15 @@ class InboundsForecastParentStream(MontapackingStream):
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         if "No groups found for these filters" in record.get("Message", ""):
             return None
-        if self.last_child == record["PoNumber"]:
+        if not record.get("Reference"):
             return None
-        if "/" in record["PoNumber"] or "\\" in record["PoNumber"]:
+        if self.last_child == record["Reference"]:
             return None
-        record["PoNumber"] = record["PoNumber"].strip().replace("\t", "")
-        self.last_child = record["PoNumber"]
-        return {"id": record["PoNumber"]}
+        if "/" in record["Reference"] or "\\" in record["Reference"]:
+            return None
+        record["Reference"] = record["Reference"].strip().replace("\t", "")
+        self.last_child = record["Reference"]
+        return {"id": record["Reference"]}
 
     def safeget(dct, *keys):
         for key in keys:
@@ -305,7 +308,6 @@ class InboundsForecastStream(MontapackingStream):
     ) -> Dict[str, Any]:
         """Return a dictionary of values to be used in URL parameterization."""
         params: dict = {}
-        params['created_since'] = "2000-01-01T00:00:00+00:00"
         if next_page_token:
             params["page"] = next_page_token
         return params
@@ -407,7 +409,7 @@ class OrdersStream(MontapackingStream):
             th.Property("MailboxShipperMandatory",th.BooleanType),
             th.Property("ShipperTrackingMandatory",th.BooleanType),
             th.Property("ShipperInsuranceRequired",th.BooleanType),
-            th.Property("ShipperInsuranceValue",th.CustomType({"type": ["string"]})),
+            th.Property("ShipperInsuranceValue",th.NumberType),
             th.Property("ShipperInsuranceCurrency",th.CustomType({"type": ["string"]})),
             th.Property("DeliveryDateRequested",th.DateTimeType),
             th.Property("Lines",th.ArrayType(
@@ -483,7 +485,7 @@ class OrdersStream(MontapackingStream):
                 self.paginate_years = False
                 return 1
         else:
-            if '{"Message":"No groups found for these filters"}' in response.text:
+            if 'No groups found for these filters' in response.text:
                 return None
             if response.json():
                 return previous_token + 1
