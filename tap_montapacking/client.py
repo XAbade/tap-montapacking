@@ -16,7 +16,7 @@ from requests.exceptions import JSONDecodeError as RequestsJSONDecodeError
 class MontapackingStream(RESTStream):
     """Montapacking stream class."""
 
-    url_base = "https://api.montapacking.nl/rest/v5"
+    url_base = "https://api-v6.monta.nl"
     paginate = True
     extra_retry_statuses = [429,401]
 
@@ -42,9 +42,9 @@ class MontapackingStream(RESTStream):
         if not previous_token:
             return 1
 
-        # If the previous record had a 404 with `{"Message":"No groups found for these filters"}`
+        # If the previous record had a 404 with 'No groups found for these filters'
         # then we should terminate the pagination
-        if '{"Message":"No groups found for these filters"}' in response.text:
+        if 'No groups found for these filters' in response.text:
             return None
 
         if self.records_jsonpath:
