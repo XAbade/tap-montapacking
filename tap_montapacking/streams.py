@@ -10,6 +10,7 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 import datetime
 from dateutil.relativedelta import relativedelta
 from tap_montapacking.client import MontapackingStream
+from urllib.parse import quote
 
 # STREAMS TODO
 # PRODUCTS [x]
@@ -245,7 +246,7 @@ class InboundsForecastParentStream(MontapackingStream):
             return None
         record["Reference"] = record["Reference"].strip().replace("\t", "")
         self.last_child = record["Reference"]
-        return {"id": record["Reference"]}
+        return {"id": quote(record["Reference"], safe='')}
 
     def safeget(dct, *keys):
         for key in keys:
