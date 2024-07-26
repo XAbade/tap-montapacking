@@ -274,7 +274,7 @@ class InboundsForecastStream(MontapackingStream):
     """Define custom stream."""
 
     name = "inboundforecast"
-    path = "/inboundforecast/group/{id}"
+    path = "/inboundforecast/group?Reference={id}"
     primary_keys = ["PoNumber"]
     paginate = False
     records_jsonpath = "$.[*]"
