@@ -11,6 +11,9 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from tap_montapacking.client import MontapackingStream
 from urllib.parse import quote
+from datetime import datetime, timedelta
+from backports.cached_property import cached_property
+import pytz
 
 # STREAMS TODO
 # PRODUCTS [x]
@@ -47,11 +50,18 @@ class ProductsStream(MontapackingStream):
                 th.Property("StockBlocked", th.IntegerType),
                 th.Property("StockInTransit", th.IntegerType),
                 th.Property("StockReserved", th.IntegerType),
+                th.Property("StockInboundHistory", th.IntegerType),
                 th.Property("StockAvailable", th.IntegerType),
                 th.Property("StockWholeSaler", th.IntegerType),
+                th.Property("StockOpen", th.IntegerType),
                 th.Property(
                     "PerWarehouse", th.CustomType({"type": ["array", "string"]})
                 ),
+                th.Property(
+                    "PerLocation", th.CustomType({"type": ["array", "string"]})
+                ),
+                th.Property("MaxPhysicalStock", th.IntegerType),
+                th.Property("MinPhysicalStock", th.IntegerType),
             ),
         ),
         th.Property("SupplierCode", th.StringType),
@@ -73,8 +83,47 @@ class ProductsStream(MontapackingStream):
         th.Property("SupplierProductCode", th.StringType),
         th.Property("ProductId", th.IntegerType),
         th.Property("MinimumStock", th.IntegerType),
+        th.Property("HSCode", th.StringType),
+        th.Property("WareHouseProductSettings", th.StringType),
+        th.Property("HTSCode", th.StringType),
+        th.Property("CustomField1", th.StringType),
+        th.Property("ExcludeFromStockForecast", th.BooleanType),
     ).to_dict()
 
+
+class ProductsStockStream(ProductsStream):
+    """Define custom stream."""
+
+    name = "products_stock"
+    primary_keys = ["Sku"]
+    replication_key = "LastModified"
+    records_jsonpath = "$.Products[*].Product"
+    paginate = False
+
+    @cached_property
+    def path(self):
+        default_date = (datetime.utcnow().astimezone(pytz.timezone('Europe/Amsterdam')) - timedelta(days=7))
+        rep_key = self.stream_state.get("replication_key_value")
+        if rep_key:
+            rep_key = parse(rep_key)
+        rep_key = (rep_key or default_date).strftime('%Y-%m-%dT%H:%M:%S')
+        return f"/product/updated_since/{rep_key}"
+        
+    base_properties = [
+        th.Property("LastModified", th.DateTimeType)
+    ]
+
+    @property
+    def schema(self) -> dict:
+        schema = super().schema
+        for field in self.base_properties:
+            schema["properties"].update(field.to_dict())
+        return schema
+    
+    def post_process(self, row, context):
+        now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        row["LastModified"] = now
+        return row
 
 class InboundsStream(MontapackingStream):
     """Define custom stream."""
