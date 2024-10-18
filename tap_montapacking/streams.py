@@ -527,7 +527,7 @@ class OrdersStream(MontapackingStream):
         self, response: requests.Response, previous_token: Optional[Any]
     ) -> Optional[Any]:
         year = None
-        current_year = datetime.datetime.now().year
+        current_year = datetime.now().year
         if self.created_since:
             year = self.created_since.year
         if self.paginate_years:
