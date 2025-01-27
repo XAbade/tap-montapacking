@@ -267,6 +267,7 @@ class InboundsForecastParentStream(MontapackingStream):
         th.Property("Comment", th.StringType),
         th.Property("DeliveryDate", th.DateTimeType),
         th.Property("ExpectedDeliveryDate", th.DateTimeType),
+        th.Property("UniqueId", th.StringType),
     ).to_dict()
 
     def get_url_params(
@@ -355,6 +356,7 @@ class InboundsForecastStream(MontapackingStream):
         th.Property("Comment", th.StringType),
         th.Property("DeliveryDate", th.DateTimeType),
         th.Property("ExpectedDeliveryDate", th.DateTimeType),
+        th.Property("UniqueId", th.StringType),
     ).to_dict()
 
     def get_url_params(
