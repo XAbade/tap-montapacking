@@ -546,3 +546,113 @@ class OrdersStream(MontapackingStream):
             if response.json():
                 return previous_token + 1
             return None
+        
+
+class ReturnForecastStream(MontapackingStream):
+    name = "return_forecast"
+    path = "/returnforecast"
+    replication_key = "Created"
+    records_jsonpath = "$.[*]"
+    created_since = None
+
+
+    schema = th.PropertiesList(
+        th.Property("Id", th.IntegerType),
+        th.Property("ReturnForecastId", th.IntegerType),
+        th.Property("EorderId", th.IntegerType),
+        th.Property("ViaServicePointId", th.IntegerType),
+        th.Property("RmaOrderId", th.IntegerType),
+        th.Property("Comment", th.StringType),
+        th.Property("CommentConsumer", th.StringType),
+        th.Property("Code", th.StringType),
+        th.Property("RelatieId", th.IntegerType),
+        th.Property("CauseDescriptionConsumer", th.StringType),
+        th.Property("Created", th.DateTimeType),
+        th.Property("ReturnId", th.IntegerType),
+        th.Property("IsEnRoute", th.BooleanType),
+        th.Property("IsDelivered", th.BooleanType),
+        th.Property("IsDeliveredUnknown", th.BooleanType),
+        th.Property("CreationSystemId", th.IntegerType),
+        th.Property("ShipperId", th.IntegerType),
+        th.Property("PickupDate", th.DateTimeType),
+        th.Property("AmountOfPackages", th.IntegerType),
+        th.Property("Completed", th.BooleanType),
+        th.Property("TradeInEorderId", th.IntegerType),
+        th.Property("TrackAndTraceCode", th.StringType),
+        th.Property("TrackAndTraceLink", th.StringType),
+        th.Property("RmaSettingsId", th.IntegerType),
+        th.Property(
+            "ForecastLineTradeInProduct",
+            th.ObjectType(
+                th.Property("Id", th.IntegerType),
+                th.Property("ProductCode", th.StringType),
+                th.Property("ProductDescription", th.StringType),
+                th.Property("Quantity", th.IntegerType),
+                th.Property("Comment", th.StringType),
+            )
+        ),
+        th.Property(
+            "Lines",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("Id", th.IntegerType),
+                    th.Property("ReturnForecastId", th.IntegerType),
+                    th.Property("ProductCode", th.StringType),
+                    th.Property("ProductDescription", th.StringType),
+                    th.Property("MateriaalId", th.IntegerType),
+                    th.Property("ReturnReasonId", th.IntegerType),
+                    th.Property("RelatieReturnReasonId", th.IntegerType),
+                    th.Property("ParentRelatieReturnReasonId", th.IntegerType),
+                    th.Property("ReturnReason", th.StringType),
+                    th.Property("ReturnSubReasonId", th.IntegerType),
+                    th.Property("ReturnSubReason", th.StringType),
+                    th.Property("Comment", th.StringType),
+                    th.Property("EorderLineId", th.IntegerType),
+                    th.Property("ReturnQuantity", th.IntegerType),
+                    th.Property("Reference", th.StringType),
+                    th.Property("FollowUpActionId", th.IntegerType),
+                )
+            )
+        )
+    ).to_dict()
+    
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        """Return a dictionary of URL parameters for the API request."""
+        params: dict = {}
+
+        if not self.created_since:
+            self.created_since = self.get_starting_time(context)
+
+        params["startDate"] = self.created_since.strftime("%Y-%m-%d")
+        params["endDate"] = (self.created_since + relativedelta(months=1)).strftime("%Y-%m-%d")
+
+        if next_page_token:
+            params["page"] = next_page_token
+
+        return params
+
+    def get_starting_time(self, context: Optional[dict]) -> datetime:
+        """Determine the start date for fetching data."""
+        default_start = datetime.utcnow() - timedelta(days=30)
+
+        state = self.get_context_state(context)
+        replication_key_value = state.get(self.replication_key) if state else None
+
+        if replication_key_value:
+            replicated_date = datetime.strptime(replication_key_value, "%Y-%m-%dT%H:%M:%S.%fZ")
+            return max(replicated_date, default_start)
+        else:
+            return default_start
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        """Handle pagination based on API response."""
+        data = response.json()
+        if not data or not data[0].get('Lines'):
+            return None
+
+        # Basic pagination logic
+        return (previous_token + 1) if previous_token else 2
