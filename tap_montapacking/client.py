@@ -146,4 +146,50 @@ class MontapackingStream(RESTStream):
         logging.debug("Response received successfully.")
         return response
 
-        
+    def get_records(self, context: Optional[dict]) -> Iterable[Dict[str, Any]]:
+        use_return_forecast = (
+            self.config.get("use_return_forecast")
+            if self.config.get("use_return_forecast") != None
+            else True
+        )
+        sync_products = (
+            self.config.get("sync_products")
+            if self.config.get("sync_products") != None
+            else True
+        )
+        sync_suppliers = (
+            self.config.get("sync_suppliers")
+            if self.config.get("sync_suppliers") != None
+            else True
+        )
+        sync_sell_orders = (
+            self.config.get("sync_sell_orders")
+            if self.config.get("sync_sell_orders") != None
+            else False
+        )
+        sync_buy_orders = (
+            self.config.get("sync_buy_orders")
+            if self.config.get("sync_buy_orders") != None
+            else True
+        )
+        sync_receipts = (
+            self.config.get("sync_receipts")
+            if self.config.get("sync_receipts") != None
+            else True
+        )
+
+        if (
+            (self.name == "products" and not sync_products)
+            or (self.name == "suppliers" and not sync_suppliers)
+            or (self.name == "orders" and not sync_sell_orders)
+            or (self.name == "inboundforecast_parent" and sync_buy_orders)
+            or (self.name == "inbounds" and not sync_receipts)
+            or (self.name == "return_forecast" and not use_return_forecast)
+        ):
+            pass
+        else:
+            for record in self.request_records(context):
+                transformed_record = self.post_process(record, context)
+                if transformed_record is None:
+                    continue
+                yield transformed_record
