@@ -165,7 +165,7 @@ class MontapackingStream(RESTStream):
         sync_sell_orders = (
             self.config.get("sync_sell_orders")
             if self.config.get("sync_sell_orders") != None
-            else False
+            else True
         )
         sync_buy_orders = (
             self.config.get("sync_buy_orders")
@@ -182,7 +182,7 @@ class MontapackingStream(RESTStream):
             (self.name == "products" and not sync_products)
             or (self.name == "suppliers" and not sync_suppliers)
             or (self.name == "orders" and not sync_sell_orders)
-            or (self.name == "inboundforecast_parent" and sync_buy_orders)
+            or (self.name == "inboundforecast_parent" and not sync_buy_orders)
             or (self.name == "inbounds" and not sync_receipts)
             or (self.name == "return_forecast" and not use_return_forecast)
         ):
