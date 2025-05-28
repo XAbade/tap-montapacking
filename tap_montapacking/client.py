@@ -91,6 +91,8 @@ class MontapackingStream(RESTStream):
         elif 400 <= response.status_code < 500:
             if response.status_code == 404:
                 return None
+            # Log the response body for Fatal API Errors
+            logging.error("Error response body: %s", response.text)
             msg = self.response_error_message(response)
             raise FatalAPIError(msg)
 
