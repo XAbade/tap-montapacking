@@ -88,6 +88,7 @@ class ProductsStream(MontapackingStream):
         th.Property("HTSCode", th.StringType),
         th.Property("CustomField1", th.StringType),
         th.Property("ExcludeFromStockForecast", th.BooleanType),
+        th.Property("LeadTime", th.IntegerType)
     ).to_dict()
 
 
