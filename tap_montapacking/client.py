@@ -19,6 +19,7 @@ class MontapackingStream(RESTStream):
     url_base = "https://api-v6.monta.nl"
     paginate = True
     extra_retry_statuses = [429,401]
+    timeout = 300  # 5 minutes timeout for API requests
 
     @property
     def authenticator(self) -> BasicAuthenticator:
@@ -126,7 +127,7 @@ class MontapackingStream(RESTStream):
     def post_process(self, row: dict, context: dict) -> dict :
     
         ## Substract 1 hour from the replication key
-        if self.replication_key and self.name != "inbounds":
+        if self.replication_key and self.name not in ["inbounds","inboundforecast_events"]:
             time_utc = parse(row[self.replication_key]) - timedelta(hours=1)
             row[self.replication_key] = time_utc.strftime("%Y-%m-%dT%H:%M:%S.%f")
         return row
@@ -135,7 +136,21 @@ class MontapackingStream(RESTStream):
         self, prepared_request: requests.PreparedRequest, context: dict 
     ) -> requests.Response:
         
-        response = self.requests_session.send(prepared_request, timeout=self.timeout, verify=False)
+        logging.info(f"Making request to: {prepared_request.url} (timeout: {self.timeout}s)")
+        
+        try:
+            response = self.requests_session.send(prepared_request, timeout=self.timeout, verify=False)
+            logging.info(f"Response received: {response.status_code} in {response.elapsed.total_seconds():.2f}s")
+        except requests.exceptions.Timeout:
+            logging.error(f"Request timeout after {self.timeout}s for URL: {prepared_request.url}")
+            raise RetriableAPIError(f"Request timeout after {self.timeout}s", None)
+        except requests.exceptions.ConnectionError as e:
+            logging.error(f"Connection error for URL: {prepared_request.url} - {str(e)}")
+            raise RetriableAPIError(f"Connection error: {str(e)}", None)
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Request error for URL: {prepared_request.url} - {str(e)}")
+            raise RetriableAPIError(f"Request error: {str(e)}", None)
+        
         self._write_request_duration_log(
             endpoint=self.path,
             response=response,
