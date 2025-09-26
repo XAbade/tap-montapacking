@@ -84,7 +84,9 @@ class ProductsStream(MontapackingStream):
         th.Property("ProductId", th.IntegerType),
         th.Property("MinimumStock", th.IntegerType),
         th.Property("HSCode", th.StringType),
-        th.Property("WareHouseProductSettings", th.StringType),
+        th.Property(
+            "WareHouseProductSettings", th.CustomType({"type": ["array", "string"]})
+        ),
         th.Property("HTSCode", th.StringType),
         th.Property("CustomField1", th.StringType),
         th.Property("ExcludeFromStockForecast", th.BooleanType),
@@ -657,3 +659,139 @@ class ReturnForecastStream(MontapackingStream):
 
         # Basic pagination logic
         return (previous_token + 1) if previous_token else 2
+    
+
+class InboundForecastEventsStream(MontapackingStream):
+    """Define InboundForecastEvents stream."""
+
+    name = "inboundforecast_events"
+    path = "/inboundforecast/events/since_id/{last_eventId}"
+    primary_keys = ["EventId"]
+    replication_key = "EventId"
+    records_jsonpath = "$.[*]"
+    paginate = False
+    
+    # Class variable to store unique group IDs
+    _unique_group_ids = set()
+
+    schema = th.PropertiesList(
+        th.Property("EventId", th.IntegerType),
+        th.Property("Sku", th.StringType),
+        th.Property("EventCode", th.StringType),
+        th.Property("InboundForecastGroupId", th.StringType),
+        th.Property("InboundForecastGroupReference", th.StringType),
+        th.Property("Created", th.DateTimeType),
+    ).to_dict()
+
+    def get_url(
+        self, context: Optional[dict], next_page_token: Optional[Any] = None
+    ) -> str:
+        """Get the URL for the stream."""
+        # Clear unique group IDs at the start of each sync
+        self._unique_group_ids.clear()
+        
+        # Determine the last_eventId for path parameterization
+        if next_page_token is not None:
+            # For pagination, use the next_page_token as last_eventId
+            since_id = next_page_token
+            self.logger.info(f"Using pagination token as since_id: {since_id}")
+        else:
+            # For replication key logic, get the last EventId from state
+            state = self.get_context_state(context)
+            
+            since_id = 0
+            if isinstance(state, dict):
+                if "replication_key_value" in state:
+                    since_id = int(state["replication_key_value"])
+                elif "context" in state and "stream_state" in state["context"]:
+                    stream_state = state["context"]["stream_state"]
+                    if "replication_key_value" in stream_state:
+                        since_id = int(stream_state["replication_key_value"])
+            
+            self.logger.info(f"Using replication key since_id: {since_id}")
+        
+        # Create the URL using the path template
+        url = f"{self.url_base}{self.path.format(last_eventId=since_id)}"
+        self.logger.info(f"Making request to URL: {url} (since_id={since_id})")
+        return url
+
+
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return context for child streams."""
+        group_id = record.get("InboundForecastGroupId")
+        if not group_id:
+            return None
+        
+        # Only return context for unique group IDs to avoid duplicate child stream calls
+        if group_id in self._unique_group_ids:
+            return None
+        
+        self._unique_group_ids.add(group_id)
+        return {"inbound_forecast_group_id": group_id}
+
+
+    def post_process(self, record: dict, context: Optional[dict]) -> Optional[dict]:
+        """Post-process records to handle duplicates and collect group IDs."""
+        event_id = record.get("EventId")
+        if event_id:
+            # Collect unique group IDs
+            group_id = record.get("InboundForecastGroupId")
+            if group_id:
+                self._unique_group_ids.add(group_id)
+        
+        # Let the parent class handle the rest
+        return super().post_process(record, context)
+
+
+
+
+class InboundForecastGroupSinceIdStream(MontapackingStream):
+    """Define InboundForecastGroupSinceId as child stream of InboundForecastEventsStream."""
+
+    name = "inboundforecastgroup_since_id"
+    path = "/inboundforecast/group/{inbound_forecast_group_id}"
+    primary_keys = ["UniqueId"]
+    replication_key = None
+    records_jsonpath = "$"
+    paginate = False
+    parent_stream_type = InboundForecastEventsStream
+
+    schema = th.PropertiesList(
+        th.Property("Reference", th.StringType),
+        th.Property("SupplierCode", th.StringType),
+        th.Property("Comment", th.StringType),
+        th.Property("WarehouseDisplayName", th.StringType),
+        th.Property("Created", th.DateTimeType),
+        th.Property("AllocateStockOnDelivery", th.BooleanType),
+        th.Property("ExpectedDeliveryDate", th.DateTimeType),
+        th.Property("DeliveryDate", th.DateTimeType),
+        th.Property("UniqueId", th.StringType),
+        th.Property(
+            "ReceivedDate",
+            th.ObjectType(
+                th.Property("From", th.StringType),
+                th.Property("To", th.StringType),
+            )
+        ),
+        th.Property(
+            "InboundForecasts",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("DeliveryDate", th.DateTimeType),
+                    th.Property("Sku", th.StringType),
+                    th.Property("Quantity", th.IntegerType),
+                    th.Property("Approved", th.BooleanType),
+                    th.Property("QuantityReceived", th.IntegerType),
+                    th.Property("Reference", th.StringType),
+                    th.Property("Comment", th.StringType),
+                    th.Property("Batch", th.StringType),
+                    th.Property("BatchTHT", th.StringType),
+                    th.Property("InboundForecastId", th.IntegerType),
+                    th.Property("ExpectedDeliveryDate", th.DateTimeType),
+                    th.Property("ReceivedDates", th.ArrayType(th.StringType)),
+                )
+            ),
+        ),
+    ).to_dict()
+
