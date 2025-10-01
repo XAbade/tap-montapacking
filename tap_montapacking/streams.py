@@ -715,8 +715,6 @@ class InboundForecastEventsStream(MontapackingStream):
         self.logger.info(f"Making request to URL: {url} (since_id={since_id})")
         return url
 
-
-
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return context for child streams."""
         group_id = record.get("InboundForecastGroupId")
@@ -730,20 +728,9 @@ class InboundForecastEventsStream(MontapackingStream):
         self._unique_group_ids.add(group_id)
         return {"inbound_forecast_group_id": group_id}
 
-
-    def post_process(self, record: dict, context: Optional[dict]) -> Optional[dict]:
-        """Post-process records to handle duplicates and collect group IDs."""
-        event_id = record.get("EventId")
-        if event_id:
-            # Collect unique group IDs
-            group_id = record.get("InboundForecastGroupId")
-            if group_id:
-                self._unique_group_ids.add(group_id)
-        
-        # Let the parent class handle the rest
-        return super().post_process(record, context)
-
-
+    def _sync_children(self, child_context: dict) -> None:
+        if child_context is not None:
+            super()._sync_children(child_context)
 
 
 class InboundForecastGroupSinceIdStream(MontapackingStream):
