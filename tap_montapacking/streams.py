@@ -14,6 +14,8 @@ from urllib.parse import quote
 from datetime import datetime, timedelta
 from backports.cached_property import cached_property
 import pytz
+from typing import TypeVar
+_TToken = TypeVar("_TToken")
 
 # STREAMS TODO
 # PRODUCTS [x]
@@ -683,37 +685,42 @@ class InboundForecastEventsStream(MontapackingStream):
         th.Property("Created", th.DateTimeType),
     ).to_dict()
 
-    def get_url(
-        self, context: Optional[dict], next_page_token: Optional[Any] = None
-    ) -> str:
-        """Get the URL for the stream."""
-        # Clear unique group IDs at the start of each sync
-        self._unique_group_ids.clear()
+    def prepare_request(
+        self, context, next_page_token
+    ) -> requests.PreparedRequest:
+        http_method = self.rest_method
+        params: dict = self.get_url_params(context, next_page_token)
+        request_data = self.prepare_request_payload(context, next_page_token)
+        headers = self.http_headers
+
+        # process url last and add the last_eventId to the context
+        context = {} if context is None else context
+        context.update(params)
+        url: str = self.get_url(context)
+
+        return self.build_prepared_request(
+            method=http_method,
+            url=url,
+            params=params,
+            headers=headers,
+            json=request_data,
+        )
+
+    def get_next_page_token(self, response: requests.Response, previous_token: Optional[Any]) -> Optional[Any]:
+        res_json = response.json()
+        if res_json:
+            next_page_token = res_json[-1]["EventId"]
+            return next_page_token
+    
+    def get_url_params(self, context: Optional[dict], next_page_token: Optional[Any]) -> Dict[str, Any]:
+        # on first request use state to get the last_eventId
+        if not next_page_token:
+            next_page_token = self.get_context_state(context).get("replication_key_value")
         
-        # Determine the last_eventId for path parameterization
-        if next_page_token is not None:
-            # For pagination, use the next_page_token as last_eventId
-            since_id = next_page_token
-            self.logger.info(f"Using pagination token as since_id: {since_id}")
-        else:
-            # For replication key logic, get the last EventId from state
-            state = self.get_context_state(context)
-            
-            since_id = 0
-            if isinstance(state, dict):
-                if "replication_key_value" in state:
-                    since_id = int(state["replication_key_value"])
-                elif "context" in state and "stream_state" in state["context"]:
-                    stream_state = state["context"]["stream_state"]
-                    if "replication_key_value" in stream_state:
-                        since_id = int(stream_state["replication_key_value"])
-            
-            self.logger.info(f"Using replication key since_id: {since_id}")
-        
-        # Create the URL using the path template
-        url = f"{self.url_base}{self.path.format(last_eventId=since_id)}"
-        self.logger.info(f"Making request to URL: {url} (since_id={since_id})")
-        return url
+        if not next_page_token:
+            next_page_token = 0
+
+        return {"last_eventId": next_page_token}
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return context for child streams."""
