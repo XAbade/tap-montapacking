@@ -789,3 +789,150 @@ class InboundForecastGroupSinceIdStream(MontapackingStream):
         ),
     ).to_dict()
 
+
+class ProductEventsStream(MontapackingStream):
+    """Define ProductEvents stream."""
+
+    name = "product_events"
+    path = "/product/events/since_id/{last_eventId}"
+    primary_keys = ["EventId"]
+    replication_key = "EventId"
+    records_jsonpath = "$.[*]"
+    paginate = False
+    
+    # Class variable to store unique group IDs
+    _unique_product_sku = set()
+
+    schema = th.PropertiesList(
+        th.Property("EventId", th.IntegerType),
+        th.Property("Sku", th.StringType),
+        th.Property("ProductId", th.IntegerType),
+        th.Property("Created", th.DateTimeType),
+    ).to_dict()
+
+    def prepare_request(
+        self, context, next_page_token
+    ) -> requests.PreparedRequest:
+        http_method = self.rest_method
+        params: dict = self.get_url_params(context, next_page_token)
+        request_data = self.prepare_request_payload(context, next_page_token)
+        headers = self.http_headers
+
+        # process url last and add the last_eventId to the context
+        context = {} if context is None else context
+        context.update(params)
+        url: str = self.get_url(context)
+
+        return self.build_prepared_request(
+            method=http_method,
+            url=url,
+            params=params,
+            headers=headers,
+            json=request_data,
+        )
+
+    def get_next_page_token(self, response: requests.Response, previous_token: Optional[Any]) -> Optional[Any]:
+        res_json = response.json()
+        if res_json:
+            next_page_token = res_json[-1]["EventId"]
+            return next_page_token
+    
+    def get_url_params(self, context: Optional[dict], next_page_token: Optional[Any]) -> Dict[str, Any]:
+        # on first request use state to get the last_eventId
+        if not next_page_token:
+            next_page_token = self.get_context_state(context).get("replication_key_value")
+        
+        if not next_page_token:
+            next_page_token = 0
+
+        return {"last_eventId": next_page_token}
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return context for child streams."""
+        product_sku = record.get("Sku")
+        if not product_sku:
+            return None
+        
+        # Only return context for unique Product SKUs to avoid duplicate child stream calls
+        if product_sku in self._unique_product_sku:
+            return None
+        
+        self._unique_product_sku.add(product_sku)
+        return {"product_sku": product_sku}
+
+    def _sync_children(self, child_context: dict) -> None:
+        if child_context is not None:
+            super()._sync_children(child_context)
+
+
+class ProductsDetailsStream(MontapackingStream):
+    """Define ProductsBySku as child stream of ProductEventsStream."""
+
+    name = "products_details"
+    path = "/product/{product_sku}"
+    primary_keys = ["ProductId"]
+    replication_key = None
+    records_jsonpath = "$"
+    paginate = False
+    parent_stream_type = ProductEventsStream
+
+    schema = th.PropertiesList(
+        th.Property("name", th.StringType),
+        th.Property("Sku", th.StringType),
+        th.Property("Description", th.StringType),
+        th.Property("Barcodes", th.CustomType({"type": ["array", "string"]})),
+        th.Property("WeightGrammes", th.IntegerType),
+        th.Property("LengthMm", th.IntegerType),
+        th.Property("WidthMm", th.IntegerType),
+        th.Property("HeightMm", th.IntegerType),
+        th.Property(
+            "Stock",
+            th.ObjectType(
+                th.Property("StockInboundForecasted", th.IntegerType),
+                th.Property("StockQuarantaine", th.IntegerType),
+                th.Property("StockAll", th.IntegerType),
+                th.Property("StockBlocked", th.IntegerType),
+                th.Property("StockInTransit", th.IntegerType),
+                th.Property("StockReserved", th.IntegerType),
+                th.Property("StockInboundHistory", th.IntegerType),
+                th.Property("StockAvailable", th.IntegerType),
+                th.Property("StockWholeSaler", th.IntegerType),
+                th.Property("StockOpen", th.IntegerType),
+                th.Property(
+                    "PerWarehouse", th.CustomType({"type": ["array", "string"]})
+                ),
+                th.Property(
+                    "PerLocation", th.CustomType({"type": ["array", "string"]})
+                ),
+                th.Property("MaxPhysicalStock", th.IntegerType),
+                th.Property("MinPhysicalStock", th.IntegerType),
+            ),
+        ),
+        th.Property("SupplierCode", th.StringType),
+        th.Property("PurchasePrice", th.NumberType),
+        th.Property("SellingPrice", th.NumberType),
+        th.Property("PurchasePriceHidden", th.BooleanType),
+        th.Property("Food", th.BooleanType),
+        th.Property("MinimumExpiryPeriodInbound", th.IntegerType),
+        th.Property("MinimumExpiryPeriodOutbound", th.IntegerType),
+        th.Property("Cool", th.BooleanType),
+        th.Property("Note", th.StringType),
+        th.Property("HStariefCode", th.StringType),
+        th.Property("CountryOfOrigin", th.StringType),
+        th.Property("PurchaseStepQty", th.IntegerType),
+        th.Property("RegisterSerialNumber", th.BooleanType),
+        th.Property("RegisterSerialNumberB2B", th.BooleanType),
+        th.Property("IsFragile", th.BooleanType),
+        th.Property("IsDangerous", th.BooleanType),
+        th.Property("SupplierProductCode", th.StringType),
+        th.Property("ProductId", th.IntegerType),
+        th.Property("MinimumStock", th.IntegerType),
+        th.Property("HSCode", th.StringType),
+        th.Property(
+            "WareHouseProductSettings", th.CustomType({"type": ["array", "string"]})
+        ),
+        th.Property("HTSCode", th.StringType),
+        th.Property("CustomField1", th.StringType),
+        th.Property("ExcludeFromStockForecast", th.BooleanType),
+        th.Property("LeadTime", th.IntegerType)
+    ).to_dict()
