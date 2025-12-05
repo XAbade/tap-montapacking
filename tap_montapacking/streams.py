@@ -869,7 +869,7 @@ class ProductsDetailsStream(MontapackingStream):
     """Define ProductsBySku as child stream of ProductEventsStream."""
 
     name = "products_details"
-    path = "/product/{product_sku}"
+    path = "/product/{product_sku}/stock"
     primary_keys = ["ProductId"]
     replication_key = None
     records_jsonpath = "$"
