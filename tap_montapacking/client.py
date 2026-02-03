@@ -30,6 +30,12 @@ class MontapackingStream(RESTStream):
             password=self.config.get("password"),
         )
 
+    def _get_state_partition_context(self, context):
+        if self.replication_key:
+            return super()._get_state_partition_context(context)
+        
+        return None
+
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]
     ) -> Optional[Any]:
