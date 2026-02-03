@@ -222,3 +222,26 @@ class MontapackingStream(RESTStream):
                 if transformed_record is None:
                     continue
                 yield transformed_record
+
+    def _write_state_message(self) -> None:
+        """Write a STATE message with cleaned bookmarks.
+
+        Removes partition data for streams that do not have a replication key,
+        to avoid polluting ``state.json`` with non-incremental child stream
+        partitions (e.g. ``inbounds_forecast``, ``inboundforecast_group_sinceid``,
+        ``products_details``).
+        """
+        tap_state = self.tap_state
+
+        if tap_state and tap_state.get("bookmarks"):
+            for stream_name, bookmark in list(tap_state["bookmarks"].items()):
+                # If the stream exists and has no replication key, drop partitions.
+                tap_stream = self._tap.streams.get(stream_name)
+                if (
+                    tap_stream is not None
+                    and not getattr(tap_stream, "replication_key", None)
+                    and bookmark.get("partitions")
+                ):
+                    bookmark["partitions"] = []
+
+        super()._write_state_message()
