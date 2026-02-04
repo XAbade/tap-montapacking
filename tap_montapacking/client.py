@@ -210,6 +210,11 @@ class MontapackingStream(RESTStream):
             if self.config.get("sync_product_events") != None
             else True
         )
+        sync_products_stock = (
+            self.config.get("sync_products_stock")
+            if self.config.get("sync_products_stock") != None
+            else True
+        )
         sync_inboundforecast_events = (
             self.config.get("sync_inboundforecast_events")
             if self.config.get("sync_inboundforecast_events") != None
@@ -218,6 +223,7 @@ class MontapackingStream(RESTStream):
 
         if (
             (self.name == "products" and not sync_products)
+            or (self.name == "products_stock" and not sync_products_stock)
             or (self.name == "product_events" and not sync_product_events)
             or (self.name == "suppliers" and not sync_suppliers)
             or (self.name == "orders" and not sync_sell_orders)
