@@ -374,6 +374,46 @@ class InboundsForecastStream(MontapackingStream):
         return params
 
 
+class ProductRuleStream(MontapackingStream):
+    """Product rules stream - GET /productrule. Uses base pagination (page)."""
+
+    name = "productrule"
+    path = "/productrule"
+    primary_keys = ["Guid"]
+    replication_key = None
+    records_jsonpath = "$.[*]"
+    paginate = True
+
+    schema = th.PropertiesList(
+        th.Property("Type", th.StringType),
+        th.Property("Parent", th.StringType),
+        th.Property(
+            "Related",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("SKU", th.StringType),
+                    th.Property("AtEcheck", th.BooleanType),
+                    th.Property("Amount", th.IntegerType),
+                    th.Property("MaxAmountPerOrder", th.IntegerType),
+                    th.Property("OnlyInStock", th.BooleanType),
+                    th.Property("DontSendAlone", th.BooleanType),
+                    th.Property("MaxItemsPerConsumer", th.IntegerType),
+                    th.Property("KeepTogether", th.BooleanType),
+                    th.Property("MergeAtEcheck", th.BooleanType),
+                )
+            ),
+        ),
+        th.Property("Channel", th.StringType),
+        th.Property("B2BOrB2c", th.StringType),
+        th.Property("AllowedCountries", th.ArrayType(th.StringType)),
+        th.Property("Proforma", th.BooleanType),
+        th.Property("ProformaWithCurrency", th.BooleanType),
+        th.Property("IncludeOrderLineDescription", th.BooleanType),
+        th.Property("ApplyIfOnStock", th.BooleanType),
+        th.Property("Guid", th.StringType),
+    ).to_dict()
+
+
 class SupplierStream(MontapackingStream):
 
     name = "suppliers"
