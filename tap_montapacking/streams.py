@@ -898,7 +898,7 @@ class ProductEventsStream(MontapackingStream):
             return None
         
         self._unique_product_sku.add(product_sku)
-        return {"product_sku": product_sku}
+        return {"product_sku": quote(product_sku, safe="")}
 
     def _sync_children(self, child_context: dict) -> None:
         if child_context is not None:
