@@ -1,0 +1,27 @@
+{
+  "streams": [
+    {
+      "stream": "orders_events_since",
+      "tap_stream_id": "orders_events_since",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "Id": {"type": ["integer", "null"]},
+          "WebshopOrderId": {"type": ["string", "null"]},
+          "TypeCode": {"type": ["string", "null"]},
+          "TypeId": {"type": ["integer", "null"]},
+          "Description": {"type": ["string", "null"]},
+          "Occured": {"type": ["string", "null"], "format": "date-time"},
+          "Created": {"type": ["string", "null"], "format": "date-time"},
+          "EorderId": {"type": ["integer", "null"]}
+        },
+        "additionalProperties": true
+      },
+      "metadata": [
+        {"breadcrumb": [], "metadata": {"selected": true}}
+      ],
+      "key_properties": ["Id"],
+      "replication_key": "Id"
+    }
+  ]
+}

@@ -592,6 +592,64 @@ class OrdersStream(MontapackingStream):
                 return previous_token + 1
             return None
         
+class OrdersEventsSinceStream(MontapackingStream):
+
+    name = "orders_events_since"
+    rest_method = "GET"
+    path = "/orderevents/since_id/{id}"
+    primary_keys = ["Id"]
+    replication_key = "Id"
+    records_jsonpath = "$.[*]"
+    paginate = False
+
+    schema = th.PropertiesList(
+        th.Property("Id", th.IntegerType),
+        th.Property("WebshopOrderId", th.StringType),
+        th.Property("TypeCode", th.StringType),
+        th.Property("TypeId", th.IntegerType),
+        th.Property("Description", th.StringType),
+        th.Property("Occured", th.DateTimeType),
+        th.Property("Created", th.DateTimeType),
+        th.Property("EorderId", th.IntegerType),
+    ).to_dict()
+
+    def prepare_request(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> requests.PreparedRequest:
+        http_method = self.rest_method
+        params = self.get_url_params(context, next_page_token)
+        request_data = self.prepare_request_payload(context, next_page_token)
+        headers = self.http_headers
+        ctx = {} if context is None else context
+        ctx.update(params)
+        url = self.get_url(ctx)
+        query_params = {k: v for k, v in params.items() if k != "id"}
+        return self.build_prepared_request(
+            method=http_method,
+            url=url,
+            params=query_params,
+            headers=headers,
+            json=request_data,
+        )
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        data = response.json()
+        if not data:
+            return None
+        return data[-1]["Id"]
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params: Dict[str, Any] = {}
+        if next_page_token is None:
+            next_page_token = self.get_context_state(context).get("replication_key_value")
+        if next_page_token is None:
+            next_page_token = 0
+        params["id"] = next_page_token
+        return params
 
 class ReturnForecastStream(MontapackingStream):
     name = "return_forecast"
