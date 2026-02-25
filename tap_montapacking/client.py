@@ -133,7 +133,7 @@ class MontapackingStream(RESTStream):
     def post_process(self, row: dict, context: dict) -> dict :
     
         ## Substract 1 hour from the replication key
-        if self.replication_key and self.name not in ["inbounds","inboundforecast_events","product_events"]:
+        if self.replication_key and self.name not in ["inbounds","inboundforecast_events","product_events","orders_events_since"]:
             time_utc = parse(row[self.replication_key]) - timedelta(hours=1)
             row[self.replication_key] = time_utc.strftime("%Y-%m-%dT%H:%M:%S.%f")
         return row
