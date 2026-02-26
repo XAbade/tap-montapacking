@@ -14,6 +14,10 @@ import logging
 from requests.exceptions import JSONDecodeError as RequestsJSONDecodeError
 import time
 from datetime import datetime
+import urllib3
+
+# Reduce log noise: only log request URL, not response or per-request metrics
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class MontapackingStream(RESTStream):
     """Montapacking stream class."""
@@ -161,7 +165,6 @@ class MontapackingStream(RESTStream):
         
         try:
             response = self.requests_session.send(prepared_request, timeout=self.timeout, verify=False)
-            logging.info(f"Response received: {response.status_code} in {response.elapsed.total_seconds():.2f}s")
         except requests.exceptions.Timeout:
             logging.error(f"Request timeout after {self.timeout}s for URL: {prepared_request.url}")
             raise RetriableAPIError(f"Request timeout after {self.timeout}s", None)
@@ -172,16 +175,8 @@ class MontapackingStream(RESTStream):
             logging.error(f"Request error for URL: {prepared_request.url} - {str(e)}")
             raise RetriableAPIError(f"Request error: {str(e)}", None)
         
-        self._write_request_duration_log(
-            endpoint=self.path,
-            response=response,
-            context=context,
-            extra_tags={"url": prepared_request.path_url}
-            if self._LOG_REQUEST_METRIC_URLS
-            else None,
-        )
+        # Skip per-request metric logs; only sync_duration is logged (via tap metrics filter)
         self.validate_response(response)
-        logging.debug("Response received successfully.")
         return response
 
     def get_records(self, context: Optional[dict]) -> Iterable[Dict[str, Any]]:
