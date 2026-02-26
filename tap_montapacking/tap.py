@@ -1,9 +1,11 @@
 """Montapacking tap class."""
 
+import logging
 from typing import List
 
 from singer_sdk import Stream, Tap
 from singer_sdk import typing as th  # JSON schema typing helpers
+from singer_sdk import metrics as sdk_metrics
 
 from tap_montapacking.streams import (
     InboundsForecastParentStream,
@@ -38,10 +40,27 @@ STREAM_TYPES = [
 ]
 
 
+class _SyncDurationOnlyFilter(logging.Filter):
+    """Only allow sync_duration metrics through; drop http_request_*, record_count, etc."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        point = getattr(record, "point", None)
+        if point is None:
+            return True
+        if isinstance(point, dict):
+            return point.get("metric") == "sync_duration"
+        return True
+
+
 class TapMontapacking(Tap):
     """Montapacking tap class."""
 
     name = "tap-montapacking"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        metrics_logger = logging.getLogger(sdk_metrics.METRICS_LOGGER_NAME)
+        metrics_logger.addFilter(_SyncDurationOnlyFilter())
 
     config_jsonschema = th.PropertiesList(
         th.Property("username", th.StringType, required=True, secret=True),
