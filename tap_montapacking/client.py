@@ -216,6 +216,11 @@ class MontapackingStream(RESTStream):
             else True
         )
 
+        # --- NEW: state-based stream switching ---
+        bookmarks = self.tap_state.get("bookmarks", {})
+        products_initial_sync_done = "products" in bookmarks
+        forecast_initial_sync_done = "inboundforecast_parent" in bookmarks
+        
         if (
             (self.name == "products" and not sync_products)
             or (self.name == "suppliers" and not sync_suppliers)
@@ -224,6 +229,12 @@ class MontapackingStream(RESTStream):
             or (self.name == "inbounds" and not sync_receipts)
             or (self.name == "return_forecast" and not use_return_forecast)
             or (self.name == "productrule" and not sync_productrule)
+            # After first sync, skip bulk streams in favour of incremental ones
+            or (self.name == "products" and products_initial_sync_done)
+            or (self.name == "inboundforecast_parent" and forecast_initial_sync_done)
+            # Before first sync is done, skip the incremental streams
+            or (self.name in ("products_stock", "product_events", "products_details") and not products_initial_sync_done)
+            or (self.name in ("inboundforecast_events", "inboundforecastgroup_since_id") and not forecast_initial_sync_done)
         ):
             pass
         else:
