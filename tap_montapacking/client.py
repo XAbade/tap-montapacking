@@ -217,7 +217,7 @@ class MontapackingStream(RESTStream):
         )
 
         # --- NEW: state-based stream switching ---
-        bookmarks = self.tap_state.get("bookmarks", {})
+        bookmarks = self._tap.state.get("bookmarks", {})
         products_initial_sync_done = "products" in bookmarks
         forecast_initial_sync_done = "inboundforecast_parent" in bookmarks
         
