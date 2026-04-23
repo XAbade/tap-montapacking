@@ -57,6 +57,10 @@ class TapMontapacking(Tap):
 
     name = "tap-montapacking"
 
+    def load_state(self, state: dict) -> None:
+        self._raw_bookmark_keys = set(state.get("bookmarks", {}).keys())
+        super().load_state(state)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         metrics_logger = logging.getLogger(sdk_metrics.METRICS_LOGGER_NAME)
