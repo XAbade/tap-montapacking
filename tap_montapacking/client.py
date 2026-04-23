@@ -236,7 +236,8 @@ class MontapackingStream(RESTStream):
             or (self.name in ("products_stock", "product_events", "products_details") and not products_initial_sync_done)
             or (self.name in ("inboundforecast_events", "inboundforecastgroup_since_id") and not forecast_initial_sync_done)
         ):
-            pass
+            self.logger.info(f"Skipping stream: {self.name}")
+            #pass
         else:
             for record in self.request_records(context):
                 transformed_record = self.post_process(record, context)
