@@ -226,7 +226,8 @@ class MontapackingStream(RESTStream):
             or (self.name == "suppliers" and not sync_suppliers)
             or (self.name == "orders" and not sync_sell_orders)
             or (self.name == "inboundforecast_parent" and not sync_buy_orders)
-            or (self.name == "inbounds" and not sync_receipts)
+            # If we don't sync buyOrders we also don't need the receiptLines
+            or (self.name == "inbounds" and (not sync_receipts or not sync_buy_orders))
             or (self.name == "return_forecast" and not use_return_forecast)
             or (self.name == "productrule" and not sync_productrule)
             # After first sync, skip bulk streams in favour of incremental ones
