@@ -107,12 +107,16 @@ class ProductsStockStream(ProductsStream):
 
     @cached_property
     def path(self):
-        default_date = (datetime.utcnow().astimezone(pytz.timezone('Europe/Amsterdam')) - timedelta(days=7))
+        max_lookback = datetime.utcnow().astimezone(pytz.timezone('Europe/Amsterdam')) - timedelta(days=7)
         rep_key = self.stream_state.get("replication_key_value")
         if rep_key:
             rep_key = parse(rep_key)
-        rep_key = (rep_key or default_date).strftime('%Y-%m-%dT%H:%M:%S')
-        return f"/product/updated_since/{rep_key}"
+            # Clamp: if state is older than 7 days, use the 7-day limit instead
+            if rep_key < max_lookback:
+                rep_key = max_lookback
+        else:
+            rep_key = max_lookback
+        return f"/product/updated_since/{rep_key.strftime('%Y-%m-%dT%H:%M:%S')}"
         
     base_properties = [
         th.Property("LastModified", th.DateTimeType)
